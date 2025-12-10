@@ -132,23 +132,23 @@ end
 -- Spawn main menu
 function spawnMenu()
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 220, 0, 300)
-    frame.Position = UDim2.new(0, 10, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
-    frame.BorderSizePixel = 0
+    frame.Size = UDim2.new(0,220,0,300)
+    frame.Position = UDim2.new(0,10,0,10)
+    frame.BackgroundColor3 = Color3.fromRGB(80,40,140)
     frame.ClipsDescendants = true
+    frame.BorderSizePixel = 0
     frame.Parent = screenGui
 
     local uicorner = Instance.new("UICorner")
-    uicorner.CornerRadius = UDim.new(0, 12)
+    uicorner.CornerRadius = UDim.new(0,12)
     uicorner.Parent = frame
 
     -- Status label
     local statusText = Instance.new("TextLabel")
-    statusText.Size = UDim2.new(1, -10, 0, 30)
-    statusText.Position = UDim2.new(0, 5, 0, 5)
+    statusText.Size = UDim2.new(1,-10,0,30)
+    statusText.Position = UDim2.new(0,5,0,5)
     statusText.BackgroundTransparency = 1
-    statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusText.TextColor3 = Color3.fromRGB(255,255,255)
     statusText.Font = Enum.Font.GothamBold
     statusText.TextSize = 16
     statusText.TextWrapped = true
@@ -157,8 +157,8 @@ function spawnMenu()
 
     -- Scroll frame
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -10, 1, -45)
-    scroll.Position = UDim2.new(0, 5, 0, 40)
+    scroll.Size = UDim2.new(1,-10,1,-45)
+    scroll.Position = UDim2.new(0,5,0,40)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
     scroll.ScrollBarThickness = 8
@@ -166,46 +166,43 @@ function spawnMenu()
 
     local layout = Instance.new("UIListLayout")
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 4)
+    layout.Padding = UDim.new(0,4)
     layout.Parent = scroll
 
     -- Buttons for each brainrot
-    for _, name in ipairs(list) do
+    for _,name in ipairs(brainrots) do
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 25)
-        b.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Size = UDim2.new(1,0,0,25)
+        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
+        b.TextColor3 = Color3.fromRGB(255,255,255)
         b.Text = name
         b.Font = Enum.Font.Gotham
         b.TextSize = 14
         b.Parent = scroll
 
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 6)
+        corner.CornerRadius = UDim.new(0,6)
         corner.Parent = b
 
         b.MouseButton1Click:Connect(function()
             chosenBrainrot = name
-            if writefile then
-                saveSelection(name)
-            end
+            saveSelection(name)
             statusText.Text = "still searching for "..chosenBrainrot.."..."
         end)
     end
 
     -- Update CanvasSize dynamically
     local function updateCanvas()
-        local total = layout.AbsoluteContentSize.Y + 10 -- extra padding
-        scroll.CanvasSize = UDim2.new(0, 0, 0, total)
+        local total = layout.AbsoluteContentSize.Y + 10
+        scroll.CanvasSize = UDim2.new(0,0,0,total)
     end
-
-    -- Update after layout changes
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
     updateCanvas()
 
-    -- Status update functions
+    -- Status functions
     function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
     function setFound() statusText.Text = "Brainrot Found in current server!" end
+    return setSearching,setFound
 end
 
     local statusText = Instance.new("TextLabel")
