@@ -1,3 +1,4 @@
+
 -- Brainrot Finder + Server Hopper (Single File)
 -- Executor-agnostic (Synapse, Delta, Fluxus)
 
@@ -11,12 +12,37 @@ local lp = Players.LocalPlayer
 ---------------------------------------------------------
 -- executor-agnostic queue/protect
 ---------------------------------------------------------
-local queueteleport = (syn and syn.queue_on_teleport) 
-    or queue_on_teleport 
+local queueteleport = (syn and syn.queue_on_teleport)
+    or queue_on_teleport
     or (fluxus and fluxus.queue_on_teleport)
-
 local protect = (syn and syn.protect_gui) or function(x) return x end
-if type(queueteleport) ~= "function" then queueteleport = nil end
+
+if type(queueteleport) ~= "function" then
+    queueteleport = nil
+end
+
+---------------------------------------------------------
+-- file storage
+---------------------------------------------------------
+local fileName = "brainrot_selected.json"
+
+local function saveSelection(selection)
+    if writefile then
+        writefile(fileName, HttpService:JSONEncode({selected = selection}))
+    end
+end
+
+local function loadSelection()
+    if isfile and isfile(fileName) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(fileName))
+        end)
+        if ok and data then
+            return data.selected
+        end
+    end
+    return nil
+end
 
 ---------------------------------------------------------
 -- auto-execute after teleport
@@ -30,34 +56,9 @@ lp.OnTeleport:Connect(function(State)
 end)
 
 ---------------------------------------------------------
--- file storage
+-- load selection
 ---------------------------------------------------------
-local fileName = "brainrot_selected.json"
-
-local function saveSelection(selection)
-    writefile(fileName, HttpService:JSONEncode({selected = selection}))
-end
-
-local function loadSelection()
-    if isfile(fileName) then
-        local data = HttpService:JSONDecode(readfile(fileName))
-        return data.selected
-    end
-    return nil
-end
-
----------------------------------------------------------
--- handle teleport memory
----------------------------------------------------------
-local justTeleported = getgenv().wasTeleported or false
-getgenv().wasTeleported = false
-
-local chosenBrainrot = nil
-if justTeleported then
-    chosenBrainrot = loadSelection()
-else
-    if isfile(fileName) then delfile(fileName) end
-end
+local chosenBrainrot = loadSelection()
 
 ---------------------------------------------------------
 -- GUI setup
@@ -89,16 +90,20 @@ text.TextSize = 14
 text.TextWrapped = true
 text.Parent = frame
 
-local function setSearching()
-    text.Text = "Still searching for " .. chosenBrainrot .. "..."
+local function setPickMode()
+    text.Text = "select your brainrot (tap name)"
 end
 
-local function setPickMode()
-    text.Text = "Select your brainrot (tap name)"
+local function setSearching()
+    if chosenBrainrot then
+        text.Text = "still searching for "..chosenBrainrot.."..."
+    else
+        setPickMode()
+    end
 end
 
 local function setFound()
-    text.Text = "Brainrot found in current server!"
+    text.Text = "Brainrot Found in current server!"
 end
 
 ---------------------------------------------------------
@@ -130,22 +135,22 @@ local list = {
 }
 
 ---------------------------------------------------------
--- selection UI
+-- Selection UI
 ---------------------------------------------------------
 if not chosenBrainrot then
     setPickMode()
 
     local buttonFrame = Instance.new("Frame")
-    buttonFrame.Size = UDim2.new(0, 210, 0, #list * 24)
-    buttonFrame.Position = UDim2.new(0, 10, 0, 100)
+    buttonFrame.Size = UDim2.new(0,210,0,#list*24)
+    buttonFrame.Position = UDim2.new(0,10,0,100)
     buttonFrame.BackgroundTransparency = 1
     buttonFrame.Parent = screenGui
 
-    for i, name in ipairs(list) do
+    for i,name in ipairs(list) do
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 22)
-        b.Position = UDim2.new(0, 0, 0, (i-1)*24)
-        b.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
+        b.Size = UDim2.new(1,0,0,22)
+        b.Position = UDim2.new(0,0,0,(i-1)*24)
+        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
         b.TextColor3 = Color3.new(1,1,1)
         b.Text = name
         b.Font = Enum.Font.Gotham
@@ -164,7 +169,7 @@ else
 end
 
 ---------------------------------------------------------
--- brainrot detection
+-- Brainrot detection
 ---------------------------------------------------------
 local function plotHasBrainrot(target)
     local plots = Workspace:FindFirstChild("Plots")
@@ -197,21 +202,14 @@ local function hopToServer()
 
     for _, v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
-            -- prepare teleport
+            saveSelection(chosenBrainrot)
             if queueteleport then
                 queueteleport(
                     "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()"
                 )
             end
-
-            -- show searching screen before leaving
-            setSearching()
-            task.wait(0.1)
-
-            TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
+            TeleportService:TeleportToPlaceInstance(PlaceID,v.id,lp)
             task.wait(0.2)
-
-            -- kick screen for visual feedback
             if lp.Kick then
                 lp:Kick("Searching for "..chosenBrainrot)
             end
@@ -219,7 +217,6 @@ local function hopToServer()
         end
     end
 
-    -- no servers found
     if lp.Kick then
         lp:Kick("No servers available (retrying)...")
     end
@@ -231,18 +228,18 @@ end
 task.spawn(function()
     while true do
         task.wait(2)
-
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
             setFound()
             StarterGui:SetCore("SendNotification", {
                 Title="Brainrot Found",
                 Text=chosenBrainrot,
-                Duration=3
+                Duration=5
             })
             break
         end
 
         if chosenBrainrot then
+            setSearching()
             hopToServer()
         end
     end
