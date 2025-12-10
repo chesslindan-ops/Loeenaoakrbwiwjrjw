@@ -9,28 +9,28 @@ local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
 
 ---------------------------------------------------------
--- Executor-agnostic queue/protect
+-- executor-agnostic queue/protect
 ---------------------------------------------------------
 local queueteleport = (syn and syn.queue_on_teleport) 
     or queue_on_teleport 
     or (fluxus and fluxus.queue_on_teleport)
+
 local protect = (syn and syn.protect_gui) or function(x) return x end
 if type(queueteleport) ~= "function" then queueteleport = nil end
 
 ---------------------------------------------------------
--- Auto-execute after teleport
+-- auto-execute after teleport
 ---------------------------------------------------------
-lp.OnTeleport:Connect(function()
+lp.OnTeleport:Connect(function(State)
     if queueteleport then
-        queueteleport([[
-            getgenv().wasTeleported = true
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua"))()
-        ]])
+        queueteleport(
+            "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()"
+        )
     end
 end)
 
 ---------------------------------------------------------
--- File storage
+-- file storage
 ---------------------------------------------------------
 local fileName = "brainrot_selected.json"
 
@@ -39,21 +39,23 @@ local function saveSelection(selection)
 end
 
 local function loadSelection()
-    if not isfile(fileName) then return nil end
-    return HttpService:JSONDecode(readfile(fileName)).selected
+    if isfile(fileName) then
+        local data = HttpService:JSONDecode(readfile(fileName))
+        return data.selected
+    end
+    return nil
 end
 
 ---------------------------------------------------------
--- Handle teleport memory
+-- handle teleport memory
 ---------------------------------------------------------
-local justTeleported = getgenv().wasTeleported == true
+local justTeleported = getgenv().wasTeleported or false
 getgenv().wasTeleported = false
 
-local chosenBrainrot
+local chosenBrainrot = nil
 if justTeleported then
     chosenBrainrot = loadSelection()
 else
-    chosenBrainrot = nil
     if isfile(fileName) then delfile(fileName) end
 end
 
@@ -88,11 +90,11 @@ text.TextWrapped = true
 text.Parent = frame
 
 local function setSearching()
-    text.Text = "still searching for " .. chosenBrainrot .. "..."
+    text.Text = "Still searching for " .. chosenBrainrot .. "..."
 end
 
 local function setPickMode()
-    text.Text = "select your brainrot (tap name)"
+    text.Text = "Select your brainrot (tap name)"
 end
 
 local function setFound()
@@ -128,9 +130,9 @@ local list = {
 }
 
 ---------------------------------------------------------
--- Selection UI
+-- selection UI
 ---------------------------------------------------------
-if not chosenBrainrot and not justTeleported then
+if not chosenBrainrot then
     setPickMode()
 
     local buttonFrame = Instance.new("Frame")
@@ -158,17 +160,19 @@ if not chosenBrainrot and not justTeleported then
         end)
     end
 else
-    if chosenBrainrot then setSearching() end
+    setSearching()
 end
 
 ---------------------------------------------------------
--- Brainrot detection
+-- brainrot detection
 ---------------------------------------------------------
 local function plotHasBrainrot(target)
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return false end
     for _, obj in ipairs(plots:GetDescendants()) do
-        if obj.Name == target then return true end
+        if obj.Name == target then
+            return true
+        end
     end
     return false
 end
@@ -182,24 +186,42 @@ local nextCursor = ""
 local function hopToServer()
     local ok, site = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
+        if nextCursor ~= "" then
+            url = url .. "&cursor=" .. nextCursor
+        end
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
+
     if not ok or not site or not site.data then return end
     nextCursor = site.nextPageCursor or ""
 
     for _, v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
-            getgenv().wasTeleported = true
+            -- prepare teleport
             if queueteleport then
-                queueteleport([[
-                    getgenv().wasTeleported = true
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua"))()
-                ]])
+                queueteleport(
+                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()"
+                )
             end
+
+            -- show searching screen before leaving
+            setSearching()
+            task.wait(0.1)
+
             TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
+            task.wait(0.2)
+
+            -- kick screen for visual feedback
+            if lp.Kick then
+                lp:Kick("Searching for "..chosenBrainrot)
+            end
             return
         end
+    end
+
+    -- no servers found
+    if lp.Kick then
+        lp:Kick("No servers available (retrying)...")
     end
 end
 
@@ -221,7 +243,6 @@ task.spawn(function()
         end
 
         if chosenBrainrot then
-            setSearching()
             hopToServer()
         end
     end
