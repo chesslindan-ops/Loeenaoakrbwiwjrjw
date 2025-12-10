@@ -21,25 +21,20 @@ local function saveSelection(selection)
 end
 local function loadSelection()
     if isfile and isfile(fileName) then
-        local ok,data = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
+        local ok, data = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
         if ok and data then return data.selected end
     end
     return nil
 end
 local function clearSelection()
-    if isfile then pcall(delfile,fileName) end
+    if isfile then pcall(delfile, fileName) end
 end
 
 -- Handle teleport memory
 local justTeleported = getgenv().wasTeleported or false
 getgenv().wasTeleported = false
-local chosenBrainrot
-if justTeleported then
-    chosenBrainrot = loadSelection()
-else
-    chosenBrainrot = nil
-    clearSelection()
-end
+local chosenBrainrot = justTeleported and loadSelection() or nil
+if not justTeleported then clearSelection() end
 
 -- Auto-execute after teleport
 lp.OnTeleport:Connect(function()
@@ -49,7 +44,7 @@ lp.OnTeleport:Connect(function()
 end)
 
 -- Remove old GUI
-if lp:FindFirstChild("PlayerGui") and lp.PlayerGui:FindFirstChild("BrainrotFinderUI") then
+if lp.PlayerGui:FindFirstChild("BrainrotFinderUI") then
     lp.PlayerGui.BrainrotFinderUI:Destroy()
 end
 
@@ -107,18 +102,18 @@ local function tweenIntro(callback)
     t.TextTransparency = 1
     t.Parent = f
 
-    local tw1 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,4)})
+    local tw1 = TweenService:Create(f, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {Size=UDim2.new(0,300,0,4)})
     tw1:Play()
     tw1.Completed:Connect(function()
-        local tw2 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,80)})
+        local tw2 = TweenService:Create(f, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {Size=UDim2.new(0,300,0,80)})
         tw2:Play()
         tw2.Completed:Connect(function()
-            local tw3 = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=0})
+            local tw3 = TweenService:Create(t, TweenInfo.new(0.5), {TextTransparency=0})
             tw3:Play()
             tw3.Completed:Connect(function()
                 task.wait(1)
-                local twf = TweenService:Create(f,TweenInfo.new(0.5),{BackgroundTransparency=1})
-                local twt = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=1})
+                local twf = TweenService:Create(f, TweenInfo.new(0.5), {BackgroundTransparency=1})
+                local twt = TweenService:Create(t, TweenInfo.new(0.5), {TextTransparency=1})
                 twf:Play(); twt:Play()
                 twf.Completed:Connect(function()
                     f:Destroy()
@@ -130,7 +125,7 @@ local function tweenIntro(callback)
 end
 
 -- Spawn main menu
-function spawnMenu()
+local function spawnMenu()
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0,220,0,300)
     frame.Position = UDim2.new(0,10,0,10)
@@ -143,7 +138,6 @@ function spawnMenu()
     uicorner.CornerRadius = UDim.new(0,12)
     uicorner.Parent = frame
 
-    -- Status label
     local statusText = Instance.new("TextLabel")
     statusText.Size = UDim2.new(1,-10,0,30)
     statusText.Position = UDim2.new(0,5,0,5)
@@ -155,7 +149,6 @@ function spawnMenu()
     statusText.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
     statusText.Parent = frame
 
-    -- Scroll frame
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1,-10,1,-45)
     scroll.Position = UDim2.new(0,5,0,40)
@@ -169,8 +162,7 @@ function spawnMenu()
     layout.Padding = UDim.new(0,4)
     layout.Parent = scroll
 
-    -- Buttons for each brainrot
-    for _,name in ipairs(brainrots) do
+    for _, name in ipairs(brainrots) do
         local b = Instance.new("TextButton")
         b.Size = UDim2.new(1,0,0,25)
         b.BackgroundColor3 = Color3.fromRGB(60,30,100)
@@ -191,81 +183,22 @@ function spawnMenu()
         end)
     end
 
-    -- Update CanvasSize dynamically
     local function updateCanvas()
-        local total = layout.AbsoluteContentSize.Y + 10
-        scroll.CanvasSize = UDim2.new(0,0,0,total)
+        scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 5)
     end
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
     updateCanvas()
 
-    -- Status functions
-    function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
-    function setFound() statusText.Text = "Brainrot Found in current server!" end
-    return setSearching,setFound
+    local function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
+    local function setFound() statusText.Text = "Brainrot Found in current server!" end
+    return setSearching, setFound
 end
-
-    local statusText = Instance.new("TextLabel")
-    statusText.Size = UDim2.new(1,-10,0,30)
-    statusText.Position = UDim2.new(0,5,0,5)
-    statusText.BackgroundTransparency = 1
-    statusText.Font = Enum.Font.GothamBold
-    statusText.TextSize = 16
-    statusText.TextColor3 = Color3.fromRGB(255,255,255)
-    statusText.TextWrapped = true
-    statusText.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
-    statusText.Parent = frame
-
-    -- Scroll frame
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1,-10,1,-45)
-    scroll.Position = UDim2.new(0,5,0,40)
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.ScrollBarThickness = 8
-    scroll.Parent = frame
-
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = scroll
-
-    for i,name in ipairs(brainrots) do
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1,0,0,25)
-        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
-        b.TextColor3 = Color3.fromRGB(255,255,255)
-        b.Font = Enum.Font.Gotham
-        b.TextSize = 14
-        b.Text = name
-        b.Parent = scroll
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0,6)
-        corner.Parent = b
-
-        b.MouseButton1Click:Connect(function()
-            chosenBrainrot = name
-            saveSelection(name)
-            statusText.Text = "still searching for "..chosenBrainrot.."..."
-        end)
-    end
-
-    -- Status functions
-    function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
-    function setFound() statusText.Text = "Brainrot Found in current server!" end
-    return setSearching,setFound
-end
-
--- Intro then menu
-local setSearching,setFound
-tweenIntro(function()
-    setSearching,setFound = spawnMenu()
-end)
 
 -- Brainrot detection
 local function plotHasBrainrot(target)
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return false end
-    for _,obj in ipairs(plots:GetDescendants()) do
+    for _, obj in ipairs(plots:GetDescendants()) do
         if obj.Name == target then return true end
     end
     return false
@@ -276,7 +209,7 @@ local PlaceID = game.PlaceId
 local nextCursor = ""
 
 local function hopToServer()
-    local ok,site = pcall(function()
+    local ok, site = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
         if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
         return HttpService:JSONDecode(game:HttpGet(url))
@@ -284,12 +217,12 @@ local function hopToServer()
     if not ok or not site or not site.data then return end
     nextCursor = site.nextPageCursor or ""
 
-    for _,v in ipairs(site.data) do
+    for _, v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
             if queueteleport then
                 queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
             end
-            TeleportService:TeleportToPlaceInstance(PlaceID,v.id,lp)
+            TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
             task.wait(0.2)
             if lp.Kick then lp:Kick("Searching for "..chosenBrainrot) end
             return
@@ -298,9 +231,15 @@ local function hopToServer()
     if lp.Kick then lp:Kick("No servers available (retrying)...") end
 end
 
+-- Intro then menu
+local setSearching, setFound
+tweenIntro(function()
+    setSearching, setFound = spawnMenu()
+end)
+
 -- Main loop
-local foundFlag = false
 task.spawn(function()
+    local foundFlag = false
     while not foundFlag do
         task.wait(2)
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
