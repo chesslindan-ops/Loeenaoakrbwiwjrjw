@@ -281,7 +281,7 @@ local function hopToServer()
         if v.playing < v.maxPlayers then
             getgenv().wasTeleported = true
             if queueteleport then
-                queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()")
+                queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/refs/heads/main/brainrot.lua'))()")
             end
             TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
             return
