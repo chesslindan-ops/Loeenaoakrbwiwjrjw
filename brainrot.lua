@@ -1,74 +1,8 @@
--- Brainrot Finder + Server Hopper
--- Executor-agnostic (Synapse, Delta, Fluxus)
-
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local TweenService = game:GetService("TweenService")
-
-local lp = Players.LocalPlayer
-
--- Executor-agnostic
-local queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
-local protect = (syn and syn.protect_gui) or function(x) return x end
-if type(queueteleport) ~= "function" then queueteleport = nil end
-
--- File storage
-local fileName = "brainrot_selected.json"
-local function saveSelection(selection)
-    if writefile then writefile(fileName, HttpService:JSONEncode({selected = selection})) end
-end
-local function loadSelection()
-    if isfile and isfile(fileName) then
-        local ok,data = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
-        if ok and data then return data.selected end
-    end
-    return nil
-end
-local function clearSelection()
-    if isfile then pcall(delfile,fileName) end
-end
-
--- Handle teleport memory
-local justTeleported = getgenv().wasTeleported or false
-getgenv().wasTeleported = false
-local chosenBrainrot
-if justTeleported then
-    chosenBrainrot = loadSelection()
-else
-    chosenBrainrot = nil
-    clearSelection()
-end
-
--- Auto-execute after teleport
-lp.OnTeleport:Connect(function()
-    if queueteleport then
-        queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
-    end
-end)
-
--- Remove old GUI
-if lp:FindFirstChild("PlayerGui") and lp.PlayerGui:FindFirstChild("BrainrotFinderUI") then
-    lp.PlayerGui.BrainrotFinderUI:Destroy()
-end
-
--- Brainrot list
+--// CONFIG
 local brainrots = {
-    "La Vacca Saturno Saturnita","Bisonte Giuppitere","Blackhole Goat","Jackorilla",
-    "Agarrini Ia Palini","Chachechi","Karkerkar Kurkur","Los Tortus","Los Matteos",
-    "Sammyni Spyderini","Trenostruzzo Turbo 4000","Chimpanzini Spiderini","Boatito Auratito",
-    "Fragola La La La","Dul Dul Dul","Frankentteo","Karker Sahur","Torrtuginni Dragonfrutini",
-    "Los Tralaleritos","Zombie Tralala","La Cucaracha","Vulturino Skeletono","Guerriro Digitale",
-    "Extinct Tralalero","Yess My Examine","Extinct Matteo","Las Tralaleritas","Las Vaquitas Saturnitas",
-    "Pumpkin Spyderini","Job Job Job Sahur","Los Karkeritos","Graipuss Medussi","La Vacca Jacko Linterino",
-    "Trickolino","Los Spyderinis","Perrito Burrito","1x1x1x1","Los Cucarachas","Cuadramat and Pakrahmatmamat",
-    "Los Jobcitos","Nooo My Hotspot","Pot Hotspot","Noo My Examine","Telemorte","La Sahur Combinasion",
-    "To To To Sahur","Pirulitoita Bicicletaire","Horegini Boom","Quesadilla Crocodila","Pot Pumpkin",
-    "Chicleteira Bicicleteira","Spaghetti Tualetti","Esok Sekolah","Quesadillo Vampiro","Burrito Bandito",
+    "Los Jobcitos","Nooo My Hotspot","Pot Hotspot","Noo My Examine","Telemorte","La Sahur Combinasion","Spaghetti Tualetti","Esok Sekolah","Quesadillo Vampiro","Burrito Bandito",
     "Chicleteirina Bicicleteirina","Los Quesadillas","Noo My Candy","Los Nooo My Hotspotsitos",
-    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","Six Seven","Mariachi Corazoni",
+    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","67","Mariachi Corazoni",
     "Los Burritos","Swag Soda","Los Combinasionas","Fishino Clownino","Tacorita Bicicleta",
     "Nuclearo Dinosauro","Las Sis","La Karkerkar Combinasion","Chillin Chili","Chipso and Queso",
     "Money Money Puggy","Celularcini Viciosini","Los Planitos","Los Mobilis","Los 67",
@@ -77,189 +11,205 @@ local brainrots = {
     "Tang Tang Keletang","Ketupat Kepat","Los Bros","Tictac Sahur","La Supreme Combinasion","Orcaledon",
     "Ketchuru and Musturu","Spooky and Pumpky","Lavadorito Spinito","Los Spaghettis","La Casa Boo",
     "Fragrama and Chocrama","La Secret Combinasion","Burguro and Fryuro","Capitano Moby",
-    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala"
+    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
 }
 
--- Main GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BrainrotFinderUI"
+
+local webhookURL = "https://discord.com/api/webhooks/1438255847401853109/CKZIfs3E8DpARr4tPfotzHTorpb5wWRXhODKVzzyqhYXdPc0a8-yxAl3Z17n_bqioXST" -- put your webhook here
+
+--// SERVICES
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+local screenGui
+
+--// SIGMA WEBHOOK (mobile safe)
+local function SendWebhook(url, data)
+    local httpRequest =
+        (syn and syn.request)
+        or (housekeeper and housekeeper.request)
+        or (http and http.request)
+        or (http_request)
+        or (fluxus and fluxus.request)
+        or request
+
+    if not httpRequest then
+        warn("no httpRequest available")
+        return
+    end
+
+    pcall(function()
+        httpRequest({
+            Url = url,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+end
+
+local function sendFoundWebhook(foundList)
+    local jobId = game.JobId
+    local link = "roblox://experiences/start?placeId="..game.PlaceId.."&gameInstanceId="..jobId
+
+    local payload = {
+        embeds = {{
+            title = "Brainrot Found",
+            color = 0xAA00FF,
+            fields = {
+                { name = "Player", value = lp.Name, inline = true },
+                { name = "Count", value = tostring(#foundList), inline = true },
+                { name = "List", value = table.concat(foundList, ", "), inline = false },
+                { name = "Server Link", value = link, inline = false },
+                { name = "Timestamp", value = os.date("!%Y-%m-%d %H:%M:%S UTC") }
+            }
+        }}
+    }
+
+    SendWebhook(webhookURL, payload)
+end
+
+
+--// SCAN FUNCTION
+local function scan()
+    local found = {}
+
+    for _,p in ipairs(Players:GetPlayers()) do
+        for _,b in ipairs(brainrots) do
+            if p.DisplayName:lower():find(b:lower()) or p.Name:lower():find(b:lower()) then
+                table.insert(found, b)
+            end
+        end
+    end
+
+    return found
+end
+
+--// SERVER HOPPER
+local hopping = false
+
+local function hopServer()
+    local servers = {}
+    local cursor = ""
+
+    -- grab server list from api (works with mobile executors)
+    repeat
+        local raw = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?limit=100&cursor="..cursor)
+        local data = HttpService:JSONDecode(raw)
+        for _,s in ipairs(data.data) do
+            if s.id ~= game.JobId and s.playing < s.maxPlayers then
+                table.insert(servers, s.id)
+            end
+        end
+        cursor = data.nextPageCursor
+    until not cursor
+
+    if #servers == 0 then return end
+
+    local chosen = servers[math.random(1,#servers)]
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen, lp)
+end
+
+
+--// GUI (cool animated one)
+screenGui = Instance.new("ScreenGui")
+screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
-protect(screenGui)
 screenGui.Parent = lp.PlayerGui
 
--- Tween intro
-local function tweenIntro(callback)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(0,0,0,4)
-    f.Position = UDim2.new(0.5,0,0.5,0)
-    f.AnchorPoint = Vector2.new(0.5,0.5)
-    f.BackgroundColor3 = Color3.fromRGB(100,45,200)
-    f.BorderSizePixel = 0
-    f.Parent = screenGui
+-- start tiny and invisible in center
+local frame = Instance.new("Frame")
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.Size = UDim2.new(0,5,0,5)
+frame.BackgroundColor3 = Color3.fromRGB(60,20,100)
+frame.BackgroundTransparency = 1
+frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
-    local t = Instance.new("TextLabel")
-    t.Text = "Solaris Hopper Script"
-    t.Size = UDim2.new(1,0,1,0)
-    t.Position = UDim2.new(0,0,0,0)
-    t.BackgroundTransparency = 1
-    t.TextColor3 = Color3.fromRGB(255,255,255)
-    t.Font = Enum.Font.GothamBold
-    t.TextScaled = true
-    t.TextTransparency = 1
-    t.Parent = f
+-- title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Text = "Brainrot Hopper"
+title.TextTransparency = 1
+title.Parent = frame
 
-    local tw1 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,4)})
-    tw1:Play()
-    tw1.Completed:Connect(function()
-        local tw2 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,80)})
-        tw2:Play()
-        tw2.Completed:Connect(function()
-            local tw3 = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=0})
-            tw3:Play()
-            tw3.Completed:Connect(function()
-                task.wait(1)
-                local twf = TweenService:Create(f,TweenInfo.new(0.5),{BackgroundTransparency=1})
-                local twt = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=1})
-                twf:Play(); twt:Play()
-                twf.Completed:Connect(function()
-                    f:Destroy()
-                    if callback then callback() end
-                end)
-            end)
-        end)
-    end)
-end
+local status = Instance.new("TextLabel")
+status.Position = UDim2.new(0,0,0,30)
+status.Size = UDim2.new(1,0,0,20)
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.fromRGB(255,255,255)
+status.Font = Enum.Font.Gotham
+status.TextSize = 14
+status.Text = "Idle"
+status.TextTransparency = 1
+status.Parent = frame
 
--- Spawn main menu
-local function spawnMenu()
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0,220,0,300)
-    frame.Position = UDim2.new(0,10,0,10)
-    frame.BackgroundColor3 = Color3.fromRGB(80,40,140)
-    frame.ClipsDescendants = true
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
+local btn = Instance.new("TextButton")
+btn.Position = UDim2.new(0.5,-60,1,-35)
+btn.Size = UDim2.new(0,120,0,30)
+btn.BackgroundColor3 = Color3.fromRGB(100,50,200)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 14
+btn.Text = "Start Server Hop"
+btn.AutoButtonColor = true
+btn.TextTransparency = 1
+btn.BackgroundTransparency = 1
+btn.Parent = frame
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
-    local uicorner = Instance.new("UICorner")
-    uicorner.CornerRadius = UDim.new(0,12)
-    uicorner.Parent = frame
+-- ANIMATION: widen -> grow taller -> fade in
+task.spawn(function()
+    -- widen horizontally
+    frame:TweenSize(UDim2.new(0,260,0,5), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+    task.wait(0.3)
 
-    local statusText = Instance.new("TextLabel")
-    statusText.Size = UDim2.new(1,-10,0,30)
-    statusText.Position = UDim2.new(0,5,0,5)
-    statusText.BackgroundTransparency = 1
-    statusText.TextColor3 = Color3.fromRGB(255,255,255)
-    statusText.Font = Enum.Font.GothamBold
-    statusText.TextSize = 16
-    statusText.TextWrapped = true
-    statusText.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
-    statusText.Parent = frame
+    -- then grow vertically
+    frame:TweenSize(UDim2.new(0,260,0,110), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true)
+    task.wait(0.25)
 
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1,-10,1,-45)
-    scroll.Position = UDim2.new(0,5,0,40)
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.ScrollBarThickness = 8
-    scroll.Parent = frame
-
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,4)
-    layout.Parent = scroll
-
-    for _,name in ipairs(brainrots) do
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1,0,0,25)
-        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
-        b.TextColor3 = Color3.fromRGB(255,255,255)
-        b.Text = name
-        b.Font = Enum.Font.Gotham
-        b.TextSize = 14
-        b.Parent = scroll
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0,6)
-        corner.Parent = b
-
-        b.MouseButton1Click:Connect(function()
-            chosenBrainrot = name
-            saveSelection(name)
-            statusText.Text = "still searching for "..chosenBrainrot.."..."
-        end)
+    -- fade in elements
+    for i = 1, 10 do
+        local t = i/10
+        frame.BackgroundTransparency = 1 - t
+        title.TextTransparency = 1 - t
+        status.TextTransparency = 1 - t
+        btn.TextTransparency = 1 - t
+        btn.BackgroundTransparency = 1 - t
+        task.wait(0.03)
     end
-
-    local function updateCanvas()
-        scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
-    end
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-    updateCanvas()
-
-    local function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
-    local function setFound() statusText.Text = "Brainrot Found in current server!" end
-    return setSearching, setFound
-end
-
--- Intro then menu
-local setSearching, setFound
-local menuReady = false
-tweenIntro(function()
-    setSearching, setFound = spawnMenu()
-    menuReady = true
 end)
 
--- Brainrot detection
-local function plotHasBrainrot(target)
-    local plots = Workspace:FindFirstChild("Plots")
-    if not plots then return false end
-    for _,obj in ipairs(plots:GetDescendants()) do
-        if obj.Name == target then return true end
-    end
-    return false
-end
 
--- Server hopping
-local PlaceID = game.PlaceId
-local nextCursor = ""
+--// MAIN LOGIC
+btn.MouseButton1Click:Connect(function()
+    if hopping then return end
+    hopping = true
+    btn.Text = "Hopping..."
+    status.Text = "Scanning..."
 
-local function hopToServer()
-    local ok,site = pcall(function()
-        local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
-    if not ok or not site or not site.data then return end
-    nextCursor = site.nextPageCursor or ""
+    task.spawn(function()
+        while hopping do
+            task.wait(1)
 
-    for _,v in ipairs(site.data) do
-        if v.playing < v.maxPlayers then
-            if queueteleport then
-                queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
+            local found = scan()
+            if #found > 0 then
+                hopping = false
+                status.Text = "FOUND!"
+                btn.Text = "Done"
+                
+                sendFoundWebhook(found)
+                return
             end
-            TeleportService:TeleportToPlaceInstance(PlaceID,v.id,lp)
-            task.wait(0.2)
-            if lp.Kick then lp:Kick("Searching for "..chosenBrainrot) end
-            return
-        end
-    end
-end
 
--- Main loop
-task.spawn(function()
-    repeat task.wait() until menuReady
-
-    local foundFlag = false
-    while not foundFlag do
-        task.wait(2)
-        if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
-            foundFlag = true
-            if setFound then setFound() end
-            StarterGui:SetCore("SendNotification",{Title="Brainrot Found",Text=chosenBrainrot,Duration=5})
-            break
+            status.Text = "No match, hopping..."
+            hopServer()
         end
-        if chosenBrainrot then
-            if setSearching then setSearching() end
-            hopToServer()
-        end
-    end
+    end)
 end)
