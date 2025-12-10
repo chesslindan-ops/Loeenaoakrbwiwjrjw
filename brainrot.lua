@@ -14,6 +14,7 @@ local lp = Players.LocalPlayer
 local queueteleport = (syn and syn.queue_on_teleport) 
     or queue_on_teleport 
     or (fluxus and fluxus.queue_on_teleport)
+
 local protect = (syn and syn.protect_gui) or function(x) return x end
 
 if type(queueteleport) ~= "function" then
@@ -25,7 +26,9 @@ end
 ---------------------------------------------------------
 lp.OnTeleport:Connect(function(State)
     if queueteleport then
-        queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()")
+        queueteleport(
+            "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()"
+        )
     end
 end)
 
@@ -52,7 +55,7 @@ getgenv().wasTeleported = false
 
 local chosenBrainrot
 if justTeleported then
-    chosenBrainrot = loadSelection() -- retain selection after teleport
+    chosenBrainrot = loadSelection()
 else
     chosenBrainrot = nil
     if isfile(fileName) then delfile(fileName) end
@@ -97,120 +100,31 @@ local function setPickMode()
 end
 
 ---------------------------------------------------------
--- Brainrot list (trimmed)
+-- Brainrot list
 ---------------------------------------------------------
 local list = {
-    "La Vacca Saturno Saturnita",
-    "Bisonte Giuppitere",
-    "Blackhole Goat",
-    "Jackorilla",
-    "Agarrini Ia Palini",
-    "Chachechi",
-    "Karkerkar Kurkur",
-    "Los Tortus",
-    "Los Matteos",
-    "Sammyni Spyderini",
-    "Trenostruzzo Turbo 4000",
-    "Chimpanzini Spiderini",
-    "Boatito Auratito",
-    "Fragola La La La",
-    "Dul Dul Dul",
-    "Frankentteo",
-    "Karker Sahur",
-    "Torrtuginni Dragonfrutini",
-    "Los Tralaleritos",
-    "Zombie Tralala",
-    "La Cucaracha",
-    "Vulturino Skeletono",
-    "Guerriro Digitale",
-    "Extinct Tralalero",
-    "Yess My Examine",
-    "Extinct Matteo",
-    "Las Tralaleritas",
-    "Las Vaquitas Saturnitas",
-    "Pumpkin Spyderini",
-    "Job Job Job Sahur",
-    "Los Karkeritos",
-    "Graipuss Medussi",
-    "La Vacca Jacko Linterino",
-    "Trickolino",
-    "Los Spyderinis",
-    "Perrito Burrito",
-    "1x1x1x1",
-    "Los Cucarachas",
-    "Cuadramat and Pakrahmatmamat",
-    "Los Jobcitos",
-    "Nooo My Hotspot",
-    "Pot Hotspot",
-    "Noo My Examine",
-    "Telemorte",
-    "La Sahur Combinasion",
-    "To To To Sahur",
-    "Pirulitoita Bicicletaire",
-    "Horegini Boom",
-    "Quesadilla Crocodila",
-    "Pot Pumpkin",
-    "Chicleteira Bicicleteira",
-    "Spaghetti Tualetti",
-    "Esok Sekolah",
-    "Quesadillo Vampiro",
-    "Burrito Bandito",
-    "Chicleteirina Bicicleteirina",
-    "Los Quesadillas",
-    "Noo My Candy",
-    "Los Nooo My Hotspotsitos",
-    "La Grande Combinassion",
-    "Rang Ring Bus",
-    "Guest 666",
-    "Los Chicleteiras",
-    "Six Seven",
-    "Mariachi Corazoni",
-    "Los Burritos",
-    "Swag Soda",
-    "Los Combinasionas",
-    "Fishino Clownino",
-    "Tacorita Bicicleta",
-    "Nuclearo Dinosauro",
-    "Las Sis",
-    "La Karkerkar Combinasion",
-    "Chillin Chili",
-    "Chipso and Queso",
-    "Money Money Puggy",
-    "Celularcini Viciosini",
-    "Los Planitos",
-    "Los Mobilis",
-    "Los 67",
-    "Mieteteira Bicicleteira",
-    "La Spooky Grande",
-    "Los Spooky Combinasionas",
-    "Los Hotspositos",
-    "Los Puggies",
-    "W or L",
-    "Tralaledon",
-    "La Extinct Grande Combinasion",
-    "Tralaledon",
-    "Los Primos",
-    "Eviledon",
-    "Los Tacoritas",
-    "Tang Tang Keletang",
-    "Ketupat Kepat",
-    "Los Bros",
-    "Tictac Sahur",
-    "La Supreme Combinasion",
-    "Orcaledon",
-    "Ketchuru and Musturu",
-    "Spooky and Pumpky",
-    "Lavadorito Spinito",
-    "Los Spaghettis",
-    "La Casa Boo",
-    "Fragrama and Chocrama",
-    "La Secret Combinasion",
-    "Burguro and Fryuro",
-    "Capitano Moby",
-    "Headless Horseman",
-    "Strawberry Elephant",
-    "Meowl",
-    "Tralalero Tralala",
+    "La Vacca Saturno Saturnita","Bisonte Giuppitere","Blackhole Goat","Jackorilla",
+    "Agarrini Ia Palini","Chachechi","Karkerkar Kurkur","Los Tortus","Los Matteos",
+    "Sammyni Spyderini","Trenostruzzo Turbo 4000","Chimpanzini Spiderini","Boatito Auratito",
+    "Fragola La La La","Dul Dul Dul","Frankentteo","Karker Sahur","Torrtuginni Dragonfrutini",
+    "Los Tralaleritos","Zombie Tralala","La Cucaracha","Vulturino Skeletono","Guerriro Digitale",
+    "Extinct Tralalero","Yess My Examine","Extinct Matteo","Las Tralaleritas","Las Vaquitas Saturnitas",
+    "Pumpkin Spyderini","Job Job Job Sahur","Los Karkeritos","Graipuss Medussi","La Vacca Jacko Linterino",
+    "Trickolino","Los Spyderinis","Perrito Burrito","1x1x1x1","Los Cucarachas","Cuadramat and Pakrahmatmamat",
+    "Los Jobcitos","Nooo My Hotspot","Pot Hotspot","Noo My Examine","Telemorte","La Sahur Combinasion",
+    "To To To Sahur","Pirulitoita Bicicletaire","Horegini Boom","Quesadilla Crocodila","Pot Pumpkin",
+    "Chicleteira Bicicleteira","Spaghetti Tualetti","Esok Sekolah","Quesadillo Vampiro","Burrito Bandito",
+    "Chicleteirina Bicicleteirina","Los Quesadillas","Noo My Candy","Los Nooo My Hotspotsitos",
+    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","Six Seven","Mariachi Corazoni",
+    "Los Burritos","Swag Soda","Los Combinasionas","Fishino Clownino","Tacorita Bicicleta",
+    "Nuclearo Dinosauro","Las Sis","La Karkerkar Combinasion","Chillin Chili","Chipso and Queso",
+    "Money Money Puggy","Celularcini Viciosini","Los Planitos","Los Mobilis","Los 67",
+    "Mieteteira Bicicleteira","La Spooky Grande","Los Spooky Combinasionas","Los Hotspositos","Los Puggies",
+    "W or L","Tralaledon","La Extinct Grande Combinasion","Tralaledon","Los Primos","Eviledon","Los Tacoritas",
+    "Tang Tang Keletang","Ketupat Kepat","Los Bros","Tictac Sahur","La Supreme Combinasion","Orcaledon",
+    "Ketchuru and Musturu","Spooky and Pumpky","Lavadorito Spinito","Los Spaghettis","La Casa Boo",
+    "Fragrama and Chocrama","La Secret Combinasion","Burguro and Fryuro","Capitano Moby",
+    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala"
 }
 
 ---------------------------------------------------------
@@ -265,32 +179,46 @@ end
 -- Server hopping
 ---------------------------------------------------------
 local PlaceID = game.PlaceId
-local foundAnything = ""
+local nextCursor = ""
 
 local function hopToServer()
     local ok, site = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if foundAnything ~= "" then url = url.."&cursor="..foundAnything end
+        if nextCursor ~= "" then
+            url = url .. "&cursor=" .. nextCursor
+        end
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
-    if not ok or not site then return end
 
-    foundAnything = site.nextPageCursor or ""
+    if not ok or not site or not site.data then return end
+
+    nextCursor = site.nextPageCursor or ""
 
     for _, v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
+
             getgenv().wasTeleported = true
+
             if queueteleport then
-                queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/refs/heads/main/brainrot.lua'))()")
+                queueteleport(
+                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()"
+                )
             end
+
             TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
+            task.wait(0.2)
+
+            if lp.Kick then
+                lp:Kick("Searching for "..chosenBrainrot)
+            end
+
             return
         end
     end
 
-    -- no server available, kick to retry
-    if lp and lp.Kick then
-        lp:Kick("No available servers, retrying...")
+    -- no servers found
+    if lp.Kick then
+        lp:Kick("No servers available (retrying)...")
     end
 end
 
@@ -300,12 +228,19 @@ end
 task.spawn(function()
     while true do
         task.wait(2)
+
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
-            StarterGui:SetCore("SendNotification", {Title="Brainrot Found", Text=chosenBrainrot, Duration=3})
+            StarterGui:SetCore("SendNotification", {
+                Title="Brainrot Found",
+                Text=chosenBrainrot,
+                Duration=3
+            })
             break
-        else
+        end
+
+        if chosenBrainrot then
+            setSearching()
             hopToServer()
-            task.wait(4)
         end
     end
 end)
