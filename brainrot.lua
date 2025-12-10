@@ -201,7 +201,7 @@ local function hopToServer()
 
             if queueteleport then
                 queueteleport(
-                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()"
+                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/refs/heads/main/brainrot.lua'))()"
                 )
             end
 
