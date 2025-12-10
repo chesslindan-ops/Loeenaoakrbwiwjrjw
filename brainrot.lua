@@ -200,9 +200,9 @@ local function hopToServer()
             getgenv().wasTeleported = true
 
             if queueteleport then
-                queueteleport(
-                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/refs/heads/main/brainrot.lua'))()"
-                )
+    queueteleport(
+        "getgenv().wasTeleported = true; loadstring(game:HttpGet(\"https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua\"))()"
+    )
             end
 
             TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
