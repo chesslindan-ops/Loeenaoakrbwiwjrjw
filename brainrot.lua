@@ -85,30 +85,128 @@ local function scan()
 
     return found
 end
-
---// SERVER HOPPER
+--// MAIN LOGIC (fixed and more robust)
 local hopping = false
+
+-- helper to safely HttpGet (some executors block game:HttpGet)
+local function safeHttpGet(url)
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if not ok then
+        -- try alternative (some execs expose http_request)
+        if http_request then
+            ok, res = pcall(function() return http_request({Url = url, Method = "GET"}).Body end)
+        end
+    end
+    return ok and res or nil, (ok and res) or res
+end
 
 local function hopServer()
     local servers = {}
     local cursor = ""
 
-    -- grab server list from api (works with mobile executors)
     repeat
-        local raw = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?limit=100&cursor="..cursor)
-        local data = HttpService:JSONDecode(raw)
+        local url = "https://games.roblox.com/v1/games/"..tostring(game.PlaceId).."/servers/Public?limit=100&cursor="..tostring(cursor)
+        local raw, err = safeHttpGet(url)
+        if not raw then
+            warn("hopServer: failed to fetch servers:", err)
+            return false, "http_failed"
+        end
+
+        local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
+        if not ok or not data or not data.data then
+            warn("hopServer: bad json or empty data")
+            return false, "bad_json"
+        end
+
         for _,s in ipairs(data.data) do
-            if s.id ~= game.JobId and s.playing < s.maxPlayers then
+            if s.id ~= game.JobId and (s.playing or 0) < (s.maxPlayers or 0) then
                 table.insert(servers, s.id)
             end
         end
-        cursor = data.nextPageCursor
-    until not cursor
 
-    if #servers == 0 then return end
+        cursor = data.nextPageCursor
+    until not cursor or cursor == ""
+
+    if #servers == 0 then
+        warn("hopServer: no candidate servers found")
+        return false, "no_servers"
+    end
 
     local chosen = servers[math.random(1,#servers)]
-    TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen, lp)
+    local ok, err = pcall(function()
+        -- Try TeleportToPlaceInstance with player param (works in many executors)
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen, lp)
+    end)
+
+    if not ok then
+        warn("TeleportToPlaceInstance failed, trying fallback:", err)
+        pcall(function()
+            -- fallback attempt (may teleport only caller in some contexts)
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen)
+        end)
+    end
+
+    return true
+end
+
+-- Start/stop function wired to button
+local function startHopping()
+    if hopping then return end
+    hopping = true
+    btn.Text = "Hopping..."
+    status.Text = "Scanning..."
+
+    btn.AutoButtonColor = false
+    btn.Active = false
+
+    task.spawn(function()
+        while hopping do
+            task.wait(1)
+
+            local found = scan()
+            if #found > 0 then
+                hopping = false
+                status.Text = "FOUND!"
+                btn.Text = "Done"
+                btn.AutoButtonColor = true
+                btn.Active = true
+
+                sendFoundWebhook(found)
+                return
+            end
+
+            status.Text = "No match, hopping..."
+            local ok, errcode = hopServer()
+            if not ok then
+                -- if hop failed we show reason and try again after a short wait
+                status.Text = "Hop failed: "..tostring(errcode)
+                warn("hop attempt failed:", errcode)
+                task.wait(2)
+            else
+                -- pause briefly; when teleport runs the client will leave this game
+                task.wait(0.5)
+            end
+        end
+
+        -- cleanup when stopping
+        btn.AutoButtonColor = true
+        btn.Active = true
+        if not hopping then
+            btn.Text = "Start Server Hop"
+            status.Text = "Idle"
+        end
+    end)
+end
+
+-- wire button click (safe connect)
+if btn and btn.MouseButton1Click then
+    btn.MouseButton1Click:Connect(function()
+        -- only start if search is OFF (you asked for UI only when search is not on)
+        -- assume `hopping` == search-on; if you have a separate `searchOn` flag substitute it here
+        startHopping()
+    end)
+else
+    warn("MAIN LOGIC: `btn` not found or doesn't support MouseButton1Click")
 end
 
 
