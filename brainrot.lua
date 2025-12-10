@@ -9,31 +9,28 @@ local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
 
 ---------------------------------------------------------
--- executor-agnostic queue/protect
+-- Executor-agnostic queue/protect
 ---------------------------------------------------------
 local queueteleport = (syn and syn.queue_on_teleport) 
     or queue_on_teleport 
     or (fluxus and fluxus.queue_on_teleport)
-
 local protect = (syn and syn.protect_gui) or function(x) return x end
-
-if type(queueteleport) ~= "function" then
-    queueteleport = nil
-end
+if type(queueteleport) ~= "function" then queueteleport = nil end
 
 ---------------------------------------------------------
--- auto-execute after teleport
+-- Auto-execute after teleport
 ---------------------------------------------------------
-lp.OnTeleport:Connect(function(State)
+lp.OnTeleport:Connect(function()
     if queueteleport then
-        queueteleport(
-            "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/<username>/<repo>/main/brainrot.lua'))()"
-        )
+        queueteleport([[
+            getgenv().wasTeleported = true
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua"))()
+        ]])
     end
 end)
 
 ---------------------------------------------------------
--- file storage
+-- File storage
 ---------------------------------------------------------
 local fileName = "brainrot_selected.json"
 
@@ -43,14 +40,13 @@ end
 
 local function loadSelection()
     if not isfile(fileName) then return nil end
-    local data = HttpService:JSONDecode(readfile(fileName))
-    return data.selected
+    return HttpService:JSONDecode(readfile(fileName)).selected
 end
 
 ---------------------------------------------------------
--- handle teleport memory
+-- Handle teleport memory
 ---------------------------------------------------------
-local justTeleported = getgenv().wasTeleported or false
+local justTeleported = getgenv().wasTeleported == true
 getgenv().wasTeleported = false
 
 local chosenBrainrot
@@ -99,6 +95,10 @@ local function setPickMode()
     text.Text = "select your brainrot (tap name)"
 end
 
+local function setFound()
+    text.Text = "Brainrot found in current server!"
+end
+
 ---------------------------------------------------------
 -- Brainrot list
 ---------------------------------------------------------
@@ -128,9 +128,9 @@ local list = {
 }
 
 ---------------------------------------------------------
--- selection UI
+-- Selection UI
 ---------------------------------------------------------
-if not chosenBrainrot then
+if not chosenBrainrot and not justTeleported then
     setPickMode()
 
     local buttonFrame = Instance.new("Frame")
@@ -158,19 +158,17 @@ if not chosenBrainrot then
         end)
     end
 else
-    setSearching()
+    if chosenBrainrot then setSearching() end
 end
 
 ---------------------------------------------------------
--- brainrot detection
+-- Brainrot detection
 ---------------------------------------------------------
 local function plotHasBrainrot(target)
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return false end
     for _, obj in ipairs(plots:GetDescendants()) do
-        if obj.Name == target then
-            return true
-        end
+        if obj.Name == target then return true end
     end
     return false
 end
@@ -184,41 +182,24 @@ local nextCursor = ""
 local function hopToServer()
     local ok, site = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if nextCursor ~= "" then
-            url = url .. "&cursor=" .. nextCursor
-        end
+        if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
-
     if not ok or not site or not site.data then return end
-
     nextCursor = site.nextPageCursor or ""
 
     for _, v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
-
             getgenv().wasTeleported = true
-
             if queueteleport then
-    queueteleport(
-        "getgenv().wasTeleported = true; loadstring(game:HttpGet(\"https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua\"))()"
-    )
+                queueteleport([[
+                    getgenv().wasTeleported = true
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua"))()
+                ]])
             end
-
             TeleportService:TeleportToPlaceInstance(PlaceID, v.id, lp)
-            task.wait(0.2)
-
-            if lp.Kick then
-                lp:Kick("Searching for "..chosenBrainrot)
-            end
-
             return
         end
-    end
-
-    -- no servers found
-    if lp.Kick then
-        lp:Kick("No servers available (retrying)...")
     end
 end
 
@@ -230,6 +211,7 @@ task.spawn(function()
         task.wait(2)
 
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
+            setFound()
             StarterGui:SetCore("SendNotification", {
                 Title="Brainrot Found",
                 Text=chosenBrainrot,
