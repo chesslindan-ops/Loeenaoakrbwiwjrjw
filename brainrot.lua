@@ -1,18 +1,16 @@
--- Brainrot Finder + Server Hopper + Webhook
+-- Brainrot Finder + Auto Server Hopper
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
-local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-local TweenService = game:GetService("TweenService")
-
+local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
+
 local webhookURL = "https://discord.com/api/webhooks/1438255847401853109/CKZIfs3E8DpARr4tPfotzHTorpb5wWRXhODKVzzyqhYXdPc0a8-yxAl3Z17n_bqioXST" -- put your webhook here
 
 local brainrots = {
     "Los Jobcitos","Nooo My Hotspot","Pot Hotspot","Noo My Examine","Telemorte","La Sahur Combinasion","Spaghetti Tualetti","Esok Sekolah","Quesadillo Vampiro","Burrito Bandito",
     "Chicleteirina Bicicleteirina","Los Quesadillas","Noo My Candy","Los Nooo My Hotspotsitos",
-    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","Mariachi Corazoni",
+    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","67","Mariachi Corazoni",
     "Los Burritos","Swag Soda","Los Combinasionas","Fishino Clownino","Tacorita Bicicleta",
     "Nuclearo Dinosauro","Las Sis","La Karkerkar Combinasion","Chillin Chili","Chipso and Queso",
     "Money Money Puggy","Celularcini Viciosini","Los Planitos","Los Mobilis","Los 67",
@@ -21,65 +19,47 @@ local brainrots = {
     "Tang Tang Keletang","Ketupat Kepat","Los Bros","Tictac Sahur","La Supreme Combinasion","Orcaledon",
     "Ketchuru and Musturu","Spooky and Pumpky","Lavadorito Spinito","Los Spaghettis","La Casa Boo",
     "Fragrama and Chocrama","La Secret Combinasion","Burguro and Fryuro","Capitano Moby",
-    "Headless Horseman","Strawberry Elephant","Meowl","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
+    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
 }
 
 
--- executor-agnostic
+-- Executor-agnostic queue_on_teleport
 local queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
-local protect = (syn and syn.protect_gui) or function(x) return x end
+if type(queueteleport) ~= "function" then queueteleport = nil end
 
--- single button UI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BrainrotSingleButtonUI"
-screenGui.ResetOnSpawn = false
-protect(screenGui)
-screenGui.Parent = lp.PlayerGui
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,200,0,50)
-button.Position = UDim2.new(0,50,0,50)
-button.BackgroundColor3 = Color3.fromRGB(100,50,200)
-button.TextColor3 = Color3.fromRGB(255,255,255)
-button.Text = "Check Brainrots"
-button.Font = Enum.Font.GothamBold
-button.TextSize = 18
-button.Parent = screenGui
-
--- webhook sender
+-- Webhook
 local function SendWebhook(foundList)
-    if webhookURL == "" then return end
-    local jobId = game.JobId
-    local link = "roblox://experiences/start?placeId="..game.PlaceId.."&gameInstanceId="..jobId
+    local httpRequest = (syn and syn.request) or (http and http.request) or request
+    if not httpRequest then return end
+
     local payload = {
         embeds = {{
-            title = "Brainrots Detected",
-            color = 0x00FF00,
+            title = "Brainrot Scan",
+            color = 0xAA00FF,
             fields = {
-                { name = "Brainrots", value = table.concat(foundList, ", "), inline = false },
-                { name = "Playing", value = tostring(#Players:GetPlayers()), inline = true },
-                { name = "Timestamp", value = os.date("!%Y-%m-%d %H:%M:%S UTC"), inline = true },
-                { name = "Link", value = link, inline = false }
+                {name="Brainrots", value=table.concat(foundList,", "), inline=false},
+                {name="Playing", value=lp.Name, inline=true},
+                {name="Timestamp", value=os.date("!%Y-%m-%d %H:%M:%S UTC"), inline=true},
+                {name="Link", value="roblox://experiences/start?placeId="..game.PlaceId.."&gameInstanceId="..game.JobId, inline=false}
             }
         }}
     }
-    local httpRequest = (syn and syn.request) or (housekeeper and housekeeper.request) or (http and http.request) or (http_request) or (fluxus and fluxus.request) or request
-    if httpRequest then
-        pcall(function()
-            httpRequest({
-                Url = webhookURL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode(payload)
-            })
-        end)
-    end
+
+    pcall(function()
+        httpRequest({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(payload)
+        })
+    end)
 end
 
--- scan server
-local function scanServer()
+-- Scan function
+local function scanBrainrots()
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return {} end
+
     local found = {}
     for _, obj in ipairs(plots:GetDescendants()) do
         for _, name in ipairs(brainrots) do
@@ -91,41 +71,47 @@ local function scanServer()
     return found
 end
 
--- hop logic
-local PlaceID = game.PlaceId
-local nextCursor = ""
+-- Auto teleport then kick
 local function hopServer()
-    local ok,site = pcall(function()
-        local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
-        return HttpService:JSONDecode(game:HttpGet(url))
+    local ok, data = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?limit=100"))
     end)
-    if not ok or not site or not site.data then return end
-    nextCursor = site.nextPageCursor or ""
-    for _,v in ipairs(site.data) do
-        if v.playing < v.maxPlayers then
+    if not ok or not data or not data.data then return end
+
+    for _, server in ipairs(data.data) do
+        if server.id ~= game.JobId and server.playing < server.maxPlayers then
             if queueteleport then
-                queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
+                queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/refs/heads/main/brainrot.lua'))()")
             end
-            TeleportService:TeleportToPlaceInstance(PlaceID,v.id,lp)
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, lp)
             task.wait(0.2)
-            if lp.Kick then lp:Kick("Searching for brainrots") end
+            if lp.Kick then lp:Kick("Searching for brainrot...") end
             return
         end
     end
 end
 
--- button logic
+-- GUI with single button
+local screenGui = Instance.new("ScreenGui", lp.PlayerGui)
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,200,0,50)
+button.Position = UDim2.new(0.5,-100,0.5,-25)
+button.BackgroundColor3 = Color3.fromRGB(100,50,200)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Text = "Start Scan"
+button.Parent = screenGui
+
 button.MouseButton1Click:Connect(function()
-    local foundList = scanServer()
-    if #foundList > 0 then
-        StarterGui:SetCore("SendNotification",{
-            Title="Brainrot(s) Found",
-            Text=table.concat(foundList,", "),
-            Duration=5
-        })
-        SendWebhook(foundList) -- send hook and stay
-    else
-        hopServer() -- nothing found, hop
+    while true do
+        task.wait(1)
+        local found = scanBrainrots()
+        if #found > 0 then
+            SendWebhook(found)
+            button.Text = "Brainrot Found!"
+            break
+        else
+            hopServer() -- teleport then kick
+            break
+        end
     end
 end)
