@@ -19,7 +19,7 @@ local brainrots = {
     "Tang Tang Keletang","Ketupat Kepat","Los Bros","Tictac Sahur","La Supreme Combinasion","Orcaledon",
     "Ketchuru and Musturu","Spooky and Pumpky","Lavadorito Spinito","Los Spaghettis","La Casa Boo",
     "Fragrama and Chocrama","La Secret Combinasion","Burguro and Fryuro","Capitano Moby",
-    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
+    "Headless Horseman","Strawberry Elephant","Meowl","Noelteira Bicicleteira","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
 }
 
 
