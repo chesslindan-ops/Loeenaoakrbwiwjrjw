@@ -1,194 +1,60 @@
-
--- Brainrot Finder + Server Hopper (Single File)
+-- Brainrot Finder + Server Hopper
 -- Executor-agnostic (Synapse, Delta, Fluxus)
 
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local TweenService = game:GetService("TweenService")
 local lp = Players.LocalPlayer
 
----------------------------------------------------------
--- executor-agnostic queue/protect
----------------------------------------------------------
-local queueteleport = (syn and syn.queue_on_teleport)
-    or queue_on_teleport
-    or (fluxus and fluxus.queue_on_teleport)
+-- Executor-agnostic
+local queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
 local protect = (syn and syn.protect_gui) or function(x) return x end
+if type(queueteleport) ~= "function" then queueteleport = nil end
 
-if type(queueteleport) ~= "function" then
-    queueteleport = nil
-end
-
----------------------------------------------------------
--- file storage
----------------------------------------------------------
+-- File storage
 local fileName = "brainrot_selected.json"
-
 local function saveSelection(selection)
-    if writefile then
-        writefile(fileName, HttpService:JSONEncode({selected = selection}))
-    end
+    if writefile then writefile(fileName, HttpService:JSONEncode({selected = selection})) end
 end
-
 local function loadSelection()
     if isfile and isfile(fileName) then
-        local ok, data = pcall(function()
-            return HttpService:JSONDecode(readfile(fileName))
-        end)
-        if ok and data then
-            return data.selected
-        end
+        local ok,data = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
+        if ok and data then return data.selected end
     end
     return nil
 end
-
----------------------------------------------------------
--- auto-execute after teleport
----------------------------------------------------------
-lp.OnTeleport:Connect(function(State)
-    if queueteleport then
-        queueteleport(
-            "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()"
-        )
-    end
-end)
-
----------------------------------------------------------
--- load selection
----------------------------------------------------------
-local chosenBrainrot = loadSelection()
-
----------------------------------------------------------
--- GUI setup
----------------------------------------------------------
-local TweenService = game:GetService("TweenService")
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BrainrotFinderUI"
-screenGui.ResetOnSpawn = false
-protect(screenGui)
-screenGui.Parent = lp.PlayerGui
-
----------------------------------------------------------
--- Animated "Hopper Script" intro
----------------------------------------------------------
-local introFrame = Instance.new("Frame")
-introFrame.Size = UDim2.new(0, 0, 0, 4)
-introFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-introFrame.AnchorPoint = Vector2.new(0.5,0.5)
-introFrame.BackgroundColor3 = Color3.fromRGB(100, 45, 200)
-introFrame.BorderSizePixel = 0
-introFrame.Parent = screenGui
-
-local introText = Instance.new("TextLabel")
-introText.Text = "Solaris Hopper Script"
-introText.Size = UDim2.new(1,0,1,0)
-introText.Position = UDim2.new(0,0,0,0)
-introText.BackgroundTransparency = 1
-introText.TextColor3 = Color3.fromRGB(255,255,255)
-introText.Font = Enum.Font.GothamBold
-introText.TextScaled = true
-introText.TextTransparency = 1
-introText.Parent = introFrame
-
--- Tween animation
-local widthTween = TweenService:Create(introFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(0,300,0,4)})
-widthTween:Play()
-
-widthTween.Completed:Connect(function()
-    local heightTween = TweenService:Create(introFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(0,300,0,80)})
-    heightTween:Play()
-
-    heightTween.Completed:Connect(function()
-        local textTween = TweenService:Create(introText, TweenInfo.new(0.5), {TextTransparency=0})
-        textTween:Play()
-
-        textTween.Completed:Connect(function()
-            task.wait(1)
-            local fadeTween = TweenService:Create(introFrame, TweenInfo.new(0.5), {BackgroundTransparency=1})
-            local textFadeTween = TweenService:Create(introText, TweenInfo.new(0.5), {TextTransparency=1})
-            fadeTween:Play()
-            textFadeTween:Play()
-
-            fadeTween.Completed:Connect(function()
-                introFrame:Destroy()
-                spawnPurpleMenu()
-            end)
-        end)
-    end)
-end)
-
----------------------------------------------------------
--- Main purple menu with scrollable brainrot selection
----------------------------------------------------------
-function spawnPurpleMenu()
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 220, 0, 300)
-    frame.Position = UDim2.new(0, 10, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-
-    local uicorner = Instance.new("UICorner")
-    uicorner.CornerRadius = UDim.new(0,12)
-    uicorner.Parent = frame
-    frame.Parent = screenGui
-
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1, -10, 0, 30)
-    text.Position = UDim2.new(0, 5, 0, 5)
-    text.BackgroundTransparency = 1
-    text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    text.Font = Enum.Font.GothamBold
-    text.TextSize = 16
-    text.TextWrapped = true
-    text.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
-    text.Parent = frame
-
-    -- Scroll frame
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, -10, 1, -45)
-    scrollFrame.Position = UDim2.new(0,5,0,40)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 8
-    scrollFrame.Parent = frame
-
-    local uiList = Instance.new("UIListLayout")
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
-    uiList.Parent = scrollFrame
-
-    -- Buttons for each brainrot
-    for i, name in ipairs(list) do
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 25)
-        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
-        b.TextColor3 = Color3.fromRGB(255,255,255)
-        b.Text = name
-        b.Font = Enum.Font.Gotham
-        b.TextSize = 14
-        b.Parent = scrollFrame
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0,6)
-        corner.Parent = b
-
-        b.MouseButton1Click:Connect(function()
-            chosenBrainrot = name
-            saveSelection(name)
-            text.Text = "still searching for "..chosenBrainrot.."..."
-        end)
-    end
-
-    -- Status update functions
-    function setSearching() text.Text = "still searching for "..chosenBrainrot.."..." end
-    function setFound() text.Text = "Brainrot Found in current server!" end
+local function clearSelection()
+    if isfile then pcall(delfile,fileName) end
 end
----------------------------------------------------------
+
+-- Handle teleport memory
+local justTeleported = getgenv().wasTeleported or false
+getgenv().wasTeleported = false
+local chosenBrainrot
+if justTeleported then
+    chosenBrainrot = loadSelection()
+else
+    chosenBrainrot = nil
+    clearSelection()
+end
+
+-- Auto-execute after teleport
+lp.OnTeleport:Connect(function()
+    if queueteleport then
+        queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
+    end
+end)
+
+-- Remove old GUI
+if lp:FindFirstChild("PlayerGui") and lp.PlayerGui:FindFirstChild("BrainrotFinderUI") then
+    lp.PlayerGui.BrainrotFinderUI:Destroy()
+end
+
 -- Brainrot list
----------------------------------------------------------
-local list = {
+local brainrots = {
     "La Vacca Saturno Saturnita","Bisonte Giuppitere","Blackhole Goat","Jackorilla",
     "Agarrini Ia Palini","Chachechi","Karkerkar Kurkur","Los Tortus","Los Matteos",
     "Sammyni Spyderini","Trenostruzzo Turbo 4000","Chimpanzini Spiderini","Boatito Auratito",
@@ -213,118 +79,175 @@ local list = {
     "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala"
 }
 
----------------------------------------------------------
--- Selection UI
----------------------------------------------------------
-if not chosenBrainrot then
-    setPickMode()
+-- Main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotFinderUI"
+screenGui.ResetOnSpawn = false
+protect(screenGui)
+screenGui.Parent = lp.PlayerGui
 
-    local buttonFrame = Instance.new("Frame")
-    buttonFrame.Size = UDim2.new(0,210,0,#list*24)
-    buttonFrame.Position = UDim2.new(0,10,0,100)
-    buttonFrame.BackgroundTransparency = 1
-    buttonFrame.Parent = screenGui
+-- Tween intro
+local function tweenIntro(callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0,0,0,4)
+    f.Position = UDim2.new(0.5,0,0.5,0)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
+    f.BackgroundColor3 = Color3.fromRGB(100,45,200)
+    f.BorderSizePixel = 0
+    f.Parent = screenGui
 
-    for i,name in ipairs(list) do
+    local t = Instance.new("TextLabel")
+    t.Text = "Solaris Hopper Script"
+    t.Size = UDim2.new(1,0,1,0)
+    t.Position = UDim2.new(0,0,0,0)
+    t.BackgroundTransparency = 1
+    t.TextColor3 = Color3.fromRGB(255,255,255)
+    t.Font = Enum.Font.GothamBold
+    t.TextScaled = true
+    t.TextTransparency = 1
+    t.Parent = f
+
+    local tw1 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,4)})
+    tw1:Play()
+    tw1.Completed:Connect(function()
+        local tw2 = TweenService:Create(f,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{Size=UDim2.new(0,300,0,80)})
+        tw2:Play()
+        tw2.Completed:Connect(function()
+            local tw3 = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=0})
+            tw3:Play()
+            tw3.Completed:Connect(function()
+                task.wait(1)
+                local twf = TweenService:Create(f,TweenInfo.new(0.5),{BackgroundTransparency=1})
+                local twt = TweenService:Create(t,TweenInfo.new(0.5),{TextTransparency=1})
+                twf:Play(); twt:Play()
+                twf.Completed:Connect(function()
+                    f:Destroy()
+                    if callback then callback() end
+                end)
+            end)
+        end)
+    end)
+end
+
+-- Spawn main menu
+local function spawnMenu()
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0,220,0,300)
+    frame.Position = UDim2.new(0,10,0,10)
+    frame.BackgroundColor3 = Color3.fromRGB(80,40,140)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,12)
+    corner.Parent = frame
+    frame.Parent = screenGui
+
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(1,-10,0,30)
+    statusText.Position = UDim2.new(0,5,0,5)
+    statusText.BackgroundTransparency = 1
+    statusText.Font = Enum.Font.GothamBold
+    statusText.TextSize = 16
+    statusText.TextColor3 = Color3.fromRGB(255,255,255)
+    statusText.TextWrapped = true
+    statusText.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
+    statusText.Parent = frame
+
+    -- Scroll frame
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1,-10,1,-45)
+    scroll.Position = UDim2.new(0,5,0,40)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.ScrollBarThickness = 8
+    scroll.Parent = frame
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scroll
+
+    for i,name in ipairs(brainrots) do
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1,0,0,22)
-        b.Position = UDim2.new(0,0,0,(i-1)*24)
+        b.Size = UDim2.new(1,0,0,25)
         b.BackgroundColor3 = Color3.fromRGB(60,30,100)
-        b.TextColor3 = Color3.new(1,1,1)
-        b.Text = name
+        b.TextColor3 = Color3.fromRGB(255,255,255)
         b.Font = Enum.Font.Gotham
-        b.TextSize = 12
-        b.Parent = buttonFrame
+        b.TextSize = 14
+        b.Text = name
+        b.Parent = scroll
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0,6)
+        corner.Parent = b
 
         b.MouseButton1Click:Connect(function()
             chosenBrainrot = name
             saveSelection(name)
-            buttonFrame:Destroy()
-            setSearching()
+            statusText.Text = "still searching for "..chosenBrainrot.."..."
         end)
     end
-else
-    setSearching()
+
+    -- Status functions
+    function setSearching() statusText.Text = "still searching for "..chosenBrainrot.."..." end
+    function setFound() statusText.Text = "Brainrot Found in current server!" end
+    return setSearching,setFound
 end
 
----------------------------------------------------------
+-- Intro then menu
+local setSearching,setFound
+tweenIntro(function()
+    setSearching,setFound = spawnMenu()
+end)
+
 -- Brainrot detection
----------------------------------------------------------
 local function plotHasBrainrot(target)
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return false end
-    for _, obj in ipairs(plots:GetDescendants()) do
-        if obj.Name == target then
-            return true
-        end
+    for _,obj in ipairs(plots:GetDescendants()) do
+        if obj.Name == target then return true end
     end
     return false
 end
 
----------------------------------------------------------
 -- Server hopping
----------------------------------------------------------
 local PlaceID = game.PlaceId
 local nextCursor = ""
 
 local function hopToServer()
-    local ok, site = pcall(function()
+    local ok,site = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-        if nextCursor ~= "" then
-            url = url .. "&cursor=" .. nextCursor
-        end
+        if nextCursor ~= "" then url = url.."&cursor="..nextCursor end
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
-
     if not ok or not site or not site.data then return end
     nextCursor = site.nextPageCursor or ""
 
-    for _, v in ipairs(site.data) do
+    for _,v in ipairs(site.data) do
         if v.playing < v.maxPlayers then
-            saveSelection(chosenBrainrot)
             if queueteleport then
-                queueteleport(
-                    "getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()"
-                )
+                queueteleport("getgenv().wasTeleported = true; loadstring(game:HttpGet('https://raw.githubusercontent.com/chesslindan-ops/Loeenaoakrbwiwjrjw/main/brainrot.lua'))()")
             end
             TeleportService:TeleportToPlaceInstance(PlaceID,v.id,lp)
             task.wait(0.2)
-            if lp.Kick then
-                lp:Kick("Searching for "..chosenBrainrot)
-            end
+            if lp.Kick then lp:Kick("Searching for "..chosenBrainrot) end
             return
         end
     end
-
-    if lp.Kick then
-        lp:Kick("No servers available (retrying)...")
-    end
+    if lp.Kick then lp:Kick("No servers available (retrying)...") end
 end
 
----------------------------------------------------------
 -- Main loop
----------------------------------------------------------
----------------------------------------------------------
--- Main loop
----------------------------------------------------------
 local foundFlag = false
-
 task.spawn(function()
     while not foundFlag do
         task.wait(2)
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
             foundFlag = true
-            setFound()
-            StarterGui:SetCore("SendNotification", {
-                Title="Brainrot Found",
-                Text=chosenBrainrot,
-                Duration=5
-            })
+            if setFound then setFound() end
+            StarterGui:SetCore("SendNotification",{Title="Brainrot Found",Text=chosenBrainrot,Duration=5})
             break
         end
-
         if chosenBrainrot then
-            setSearching()
+            if setSearching then setSearching() end
             hopToServer()
         end
     end
