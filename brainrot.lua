@@ -63,49 +63,128 @@ local chosenBrainrot = loadSelection()
 ---------------------------------------------------------
 -- GUI setup
 ---------------------------------------------------------
-if lp:WaitForChild("PlayerGui"):FindFirstChild("BrainrotFinderUI") then
-    lp.PlayerGui.BrainrotFinderUI:Destroy()
-end
-
+local TweenService = game:GetService("TweenService")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainrotFinderUI"
 screenGui.ResetOnSpawn = false
 protect(screenGui)
 screenGui.Parent = lp.PlayerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 210, 0, 80)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+---------------------------------------------------------
+-- Animated "Hopper Script" intro
+---------------------------------------------------------
+local introFrame = Instance.new("Frame")
+introFrame.Size = UDim2.new(0, 0, 0, 4)
+introFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+introFrame.AnchorPoint = Vector2.new(0.5,0.5)
+introFrame.BackgroundColor3 = Color3.fromRGB(100, 45, 200)
+introFrame.BorderSizePixel = 0
+introFrame.Parent = screenGui
 
-local text = Instance.new("TextLabel")
-text.Size = UDim2.new(1, -10, 1, -10)
-text.Position = UDim2.new(0, 5, 0, 5)
-text.BackgroundTransparency = 1
-text.TextColor3 = Color3.fromRGB(255, 255, 255)
-text.Font = Enum.Font.GothamBold
-text.TextSize = 14
-text.TextWrapped = true
-text.Parent = frame
+local introText = Instance.new("TextLabel")
+introText.Text = "Solaris Hopper Script"
+introText.Size = UDim2.new(1,0,1,0)
+introText.Position = UDim2.new(0,0,0,0)
+introText.BackgroundTransparency = 1
+introText.TextColor3 = Color3.fromRGB(255,255,255)
+introText.Font = Enum.Font.GothamBold
+introText.TextScaled = true
+introText.TextTransparency = 1
+introText.Parent = introFrame
 
-local function setPickMode()
-    text.Text = "select your brainrot (tap name)"
-end
+-- Tween animation
+local widthTween = TweenService:Create(introFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(0,300,0,4)})
+widthTween:Play()
 
-local function setSearching()
-    if chosenBrainrot then
-        text.Text = "still searching for "..chosenBrainrot.."..."
-    else
-        setPickMode()
+widthTween.Completed:Connect(function()
+    local heightTween = TweenService:Create(introFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(0,300,0,80)})
+    heightTween:Play()
+
+    heightTween.Completed:Connect(function()
+        local textTween = TweenService:Create(introText, TweenInfo.new(0.5), {TextTransparency=0})
+        textTween:Play()
+
+        textTween.Completed:Connect(function()
+            task.wait(1)
+            local fadeTween = TweenService:Create(introFrame, TweenInfo.new(0.5), {BackgroundTransparency=1})
+            local textFadeTween = TweenService:Create(introText, TweenInfo.new(0.5), {TextTransparency=1})
+            fadeTween:Play()
+            textFadeTween:Play()
+
+            fadeTween.Completed:Connect(function()
+                introFrame:Destroy()
+                spawnPurpleMenu()
+            end)
+        end)
+    end)
+end)
+
+---------------------------------------------------------
+-- Main purple menu with scrollable brainrot selection
+---------------------------------------------------------
+function spawnPurpleMenu()
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 300)
+    frame.Position = UDim2.new(0, 10, 0, 10)
+    frame.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+
+    local uicorner = Instance.new("UICorner")
+    uicorner.CornerRadius = UDim.new(0,12)
+    uicorner.Parent = frame
+    frame.Parent = screenGui
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, -10, 0, 30)
+    text.Position = UDim2.new(0, 5, 0, 5)
+    text.BackgroundTransparency = 1
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 16
+    text.TextWrapped = true
+    text.Text = chosenBrainrot and ("still searching for "..chosenBrainrot.."...") or "select your brainrot (tap name)"
+    text.Parent = frame
+
+    -- Scroll frame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -10, 1, -45)
+    scrollFrame.Position = UDim2.new(0,5,0,40)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = frame
+
+    local uiList = Instance.new("UIListLayout")
+    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+    uiList.Parent = scrollFrame
+
+    -- Buttons for each brainrot
+    for i, name in ipairs(list) do
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(1, 0, 0, 25)
+        b.BackgroundColor3 = Color3.fromRGB(60,30,100)
+        b.TextColor3 = Color3.fromRGB(255,255,255)
+        b.Text = name
+        b.Font = Enum.Font.Gotham
+        b.TextSize = 14
+        b.Parent = scrollFrame
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0,6)
+        corner.Parent = b
+
+        b.MouseButton1Click:Connect(function()
+            chosenBrainrot = name
+            saveSelection(name)
+            text.Text = "still searching for "..chosenBrainrot.."..."
+        end)
     end
-end
 
-local function setFound()
-    text.Text = "Brainrot Found in current server!"
+    -- Status update functions
+    function setSearching() text.Text = "still searching for "..chosenBrainrot.."..." end
+    function setFound() text.Text = "Brainrot Found in current server!" end
 end
-
 ---------------------------------------------------------
 -- Brainrot list
 ---------------------------------------------------------
@@ -225,10 +304,16 @@ end
 ---------------------------------------------------------
 -- Main loop
 ---------------------------------------------------------
+---------------------------------------------------------
+-- Main loop
+---------------------------------------------------------
+local foundFlag = false
+
 task.spawn(function()
-    while true do
+    while not foundFlag do
         task.wait(2)
         if chosenBrainrot and plotHasBrainrot(chosenBrainrot) then
+            foundFlag = true
             setFound()
             StarterGui:SetCore("SendNotification", {
                 Title="Brainrot Found",
