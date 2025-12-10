@@ -12,7 +12,7 @@ local webhookURL = "https://discord.com/api/webhooks/1438255847401853109/CKZIfs3
 local brainrots = {
     "Los Jobcitos","Nooo My Hotspot","Pot Hotspot","Noo My Examine","Telemorte","La Sahur Combinasion","Spaghetti Tualetti","Esok Sekolah","Quesadillo Vampiro","Burrito Bandito",
     "Chicleteirina Bicicleteirina","Los Quesadillas","Noo My Candy","Los Nooo My Hotspotsitos",
-    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","67","Mariachi Corazoni",
+    "La Grande Combinassion","Rang Ring Bus","Guest 666","Los Chicleteiras","Mariachi Corazoni",
     "Los Burritos","Swag Soda","Los Combinasionas","Fishino Clownino","Tacorita Bicicleta",
     "Nuclearo Dinosauro","Las Sis","La Karkerkar Combinasion","Chillin Chili","Chipso and Queso",
     "Money Money Puggy","Celularcini Viciosini","Los Planitos","Los Mobilis","Los 67",
@@ -21,7 +21,7 @@ local brainrots = {
     "Tang Tang Keletang","Ketupat Kepat","Los Bros","Tictac Sahur","La Supreme Combinasion","Orcaledon",
     "Ketchuru and Musturu","Spooky and Pumpky","Lavadorito Spinito","Los Spaghettis","La Casa Boo",
     "Fragrama and Chocrama","La Secret Combinasion","Burguro and Fryuro","Capitano Moby",
-    "Headless Horseman","Strawberry Elephant","Meowl","Tralalero Tralala","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
+    "Headless Horseman","Strawberry Elephant","Meowl","Cookie and Milki","Dragon Cannelloni","Garama and Madundung", "La Jolly Grande", "Burrito Bandito","List List List Sahur"
 }
 
 
